@@ -56,7 +56,7 @@ export default function CreateAgent() {
     name: "",
     description: "",
     instructions: "",
-    model: "openai/gpt-oss-120b",
+    model: "gemini-3.5-flash-lite",
     tools: [],
   });
 
@@ -249,12 +249,14 @@ const handleSubmit = async (event) => {
                 }
                 className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-zinc-200 outline-none transition [color-scheme:dark] focus:border-white/25 [&>option]:bg-[#1d2026] [&>option]:text-zinc-200"
               >
-                <option value="openai/gpt-oss-120b">
-                  GPT-OSS 120B
+                <option value="gemini-3.5-flash-lite">
+                  Google Gemini 3.5 Flash-Lite (Recommended - ~900ms ultra fast)
                 </option>
-
-                <option value="openai/gpt-oss-20b">
-                  GPT-OSS 20B
+                <option value="gemini-flash-lite-latest">
+                  Google Gemini Flash-Lite Latest (~1.5s fast)
+                </option>
+                <option value="gemini-3.8-flash">
+                  Google Gemini 3.8 Flash (Deep Reasoning - slower)
                 </option>
 
                

@@ -17,17 +17,24 @@ const mcpAdapter = new MCPAdapter({
   },
 });
 
+let cachedTools = null;
+
 export async function getMCPTools() {
-  const tools = await mcpAdapter.listTools();
+  if (cachedTools) {
+    return cachedTools;
+  }
+
+  cachedTools = await mcpAdapter.listTools();
 
   console.log(
     "Loaded MCP tools:",
-    tools.map((tool) => tool.name)
+    cachedTools.map((tool) => tool.name)
   );
 
-  return tools;
+  return cachedTools;
 }
 
 export async function closeMCPAdapter() {
+  cachedTools = null;
   await mcpAdapter.close();
 }

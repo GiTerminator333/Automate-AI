@@ -779,14 +779,11 @@ async function generateInstagramCaption({
   imageDescription,
   hashtags = [],
 }) {
-  if (!process.env.GROQ_API_KEY) {
+  if (!process.env.GOOGLE_API_KEY) {
     throw new Error(
-      "GROQ_API_KEY is required when caption is not provided."
+      "GOOGLE_API_KEY is required when caption is not provided."
     );
   }
-
-  const model =
-    process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
   const hashtagText = hashtags.length
     ? hashtags
@@ -812,35 +809,16 @@ Rules:
 - Return only the caption.
 `;
 
-  const response = await axios.post(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      model,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You generate natural Instagram captions and relevant hashtags.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 250,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      timeout: 30000,
-    }
-  );
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GOOGLE_API_KEY,
+  });
 
-  const generatedCaption =
-    response.data?.choices?.[0]?.message?.content?.trim();
+  const response = await ai.models.generateContent({
+    model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+    contents: prompt,
+  });
+
+  const generatedCaption = response.text?.trim();
 
   if (!generatedCaption) {
     throw new Error(

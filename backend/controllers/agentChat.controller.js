@@ -123,6 +123,13 @@ export const chatWithAgent = async (req, res) => {
   } catch (error) {
     formatError(error);
 
+    if (error.message === "Insufficient credits") {
+      return res.status(402).json({
+        success: false,
+        message: "Insufficient credits. Please top up your account to continue.",
+      });
+    }
+
     return res.status(502).json({
       success: false,
       message: "Unable to generate an AI response. Please try again.",
@@ -217,6 +224,13 @@ export const approveEmail = async (req, res) => {
     });
   } catch (error) {
     formatError(error);
+
+    if (error.message === "Insufficient credits") {
+      return res.status(402).json({
+        success: false,
+        message: "Insufficient credits to approve and send email.",
+      });
+    }
 
     return res.status(500).json({
       success: false,

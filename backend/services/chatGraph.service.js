@@ -1,6 +1,6 @@
-import dotenv from "dotenv"
-dotenv.config()
-import { ChatGroq } from "@langchain/groq";
+import dotenv from "dotenv";
+dotenv.config();
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import {
   StateGraph,
   MessagesAnnotation,
@@ -10,9 +10,9 @@ import {
 
 import { getCheckpointer } from "../config/langgraph-checkpointer.js";
 
-const model = new ChatGroq({
-  model: "openai/gpt-oss-120b",
-  apiKey: process.env.GROQ_API_KEY,
+const model = new ChatGoogleGenerativeAI({
+  model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+  apiKey: process.env.GOOGLE_API_KEY,
 });
 
 const chatNode = async (state) => {

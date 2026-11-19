@@ -8,7 +8,7 @@ import {
 } from "@langchain/langgraph";
 
 import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { ChatGroq } from "@langchain/groq";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { AIMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import * as z from "zod/v4";
@@ -18,8 +18,10 @@ import { getCheckpointer } from "../config/langgraph-checkpointer.js";
 import { getMCPTools } from "../mcp/langgraph-mcp.js";
 
 const SUPPORTED_MODELS = [
-  "openai/gpt-oss-120b",
-  "openai/gpt-oss-20b",
+  "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.8-flash",
+  "gemini-flash-latest",
 ];
 
 // --------------------------------------------------
@@ -101,8 +103,8 @@ const invokeMcpTool = async (tool, args) => {
 // --------------------------------------------------
 
 const createAgentGraph = async (agent, userId) => {
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error("GROQ_API_KEY is not configured.");
+  if (!process.env.GOOGLE_API_KEY) {
+    throw new Error("GOOGLE_API_KEY is not configured.");
   }
 
   if (!userId) {
@@ -113,18 +115,30 @@ const createAgentGraph = async (agent, userId) => {
     throw new Error("MCP authentication is not configured.");
   }
 
-  const modelName = agent.model || "openai/gpt-oss-120b";
+  let modelName = agent.model || process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
+  // Gracefully migrate deprecated or unsupported models from existing DB records
   if (!SUPPORTED_MODELS.includes(modelName)) {
-    throw new Error("Unsupported Groq model.");
+    console.warn(
+      `[AgentGraph] Agent "${agent.name || agent._id}" had unsupported/deprecated model "${modelName}". Automatically upgrading to "gemini-3.5-flash-lite".`
+    );
+    modelName = "gemini-3.5-flash-lite";
+    if (agent.model !== modelName || agent.provider !== "gemini") {
+      agent.model = modelName;
+      agent.provider = "gemini";
+      if (typeof agent.save === "function") {
+        agent.save().catch((err) =>
+          console.error("Failed to auto-update agent model in database:", err.message)
+        );
+      }
+    }
   }
 
-  const llm = new ChatGroq({
-    apiKey: process.env.GROQ_API_KEY,
+  const llm = new ChatGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_API_KEY,
     model: modelName,
     temperature: agent.temperature ?? 0.7,
     maxRetries: 2,
-    timeout: 30000,
   });
 
   // --------------------------------------------------
@@ -1031,13 +1045,13 @@ if (actionCall.name === "publish_instagram_image") {
 
   if (!finalCaption) {
     try {
-      const captionResponse = await new ChatGroq({
-        apiKey: process.env.GROQ_API_KEY,
+      const captionLlm = new ChatGoogleGenerativeAI({
+        apiKey: process.env.GOOGLE_API_KEY,
         model: modelName,
-        temperature: 0,
-        maxRetries: 2,
-        timeout: 30000,
-      }).invoke([
+        temperature: 0.7,
+      });
+
+      const captionResponse = await captionLlm.invoke([
         new SystemMessage(`
 You are an Instagram caption writer.
 

@@ -34,13 +34,13 @@ const agentSchema = new mongoose.Schema(
     // LLM configuration
     provider: {
       type: String,
-      enum: ["groq"],
-      default: "groq",
+      enum: ["gemini"],
+      default: "gemini",
     },
 
     model: {
       type: String,
-      default: "openai/gpt-oss-120b",
+      default: "gemini-3.5-flash-lite",
     },
 
     temperature: {

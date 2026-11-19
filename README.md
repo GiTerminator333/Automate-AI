@@ -9,7 +9,7 @@
 [![MCP](https://img.shields.io/badge/Protocol-Model_Context_Protocol_(MCP)-8A2BE2)](https://modelcontextprotocol.io/)
 [![Express 5](https://img.shields.io/badge/Backend-Express_v5-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Groq](https://img.shields.io/badge/Inference-Groq_Cloud-F55036)](https://groq.com/)
+[![Google Gemini](https://img.shields.io/badge/Inference-Google_Gemini_3.5_Flash--Lite-4285F4?logo=google&logoColor=white)](https://aistudio.google.com/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Styling-Tailwind_CSS_v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -50,7 +50,7 @@ flowchart TD
     subgraph AgentCore["Agent Orchestration Engine"]
         LG["LangGraph StateGraph"]
         Checkpointer[("MongoDB Checkpointer (MongoDBSaver)")]
-        Groq["ChatGroq LLM (GPT-OSS 120B / 20B)"]
+        LLM["LLM Engine (Google Gemini 3.5 Flash-Lite)"]
         HITL{"Sensitive Action Check"}
     end
 
@@ -75,7 +75,7 @@ flowchart TD
     AgentCtrl --> LG
 
     LG <-->|"Session State Persistence"| Checkpointer
-    LG <-->|"Inference & Tool Call Reasoning"| Groq
+    LG <-->|"Inference & Tool Call Reasoning"| LLM
     LG --> HITL
 
     HITL -->|"Write Action: interrupt()"| Cards
@@ -103,7 +103,7 @@ sequenceDiagram
     participant FE as React Client
     participant BE as Express Server
     participant LG as LangGraph Engine
-    participant LLM as Groq LLM
+    participant LLM as Google Gemini LLM
     participant MCP as MCP Server
     participant API as External Service (Gmail/IG)
 
@@ -144,7 +144,7 @@ sequenceDiagram
 
 ### 1. 🤖 Custom AI Agent Builder
 - **Configurable Personas:** Define custom system instructions, behavioral guidelines, and system prompts.
-- **Dynamic Model Selection:** Choose between `openai/gpt-oss-120b` (complex multi-step reasoning) and `openai/gpt-oss-20b` (low-latency execution) via Groq Cloud.
+- **Gemini-Powered Inference:** Driven natively by **Google Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite` / `gemini-flash-lite-latest`) for sub-second latency (~900ms – 1.3s), massive 1,000,000 TPM throughput, and robust native tool calling.
 - **Granular Tool Permissions:** Toggle specific capabilities per agent (Email reading/sending, Calendar scheduling, Social publishing, Vision analysis).
 
 ### 2. 🛡️ Human-in-the-Loop (HITL) Safety Engine
@@ -192,7 +192,7 @@ sequenceDiagram
 | **Database & ODM** | MongoDB, Mongoose v9 | Persistent document and user store |
 | **Agent Orchestration**| LangGraph.js (`@langchain/langgraph`) | StateGraph orchestration, interrupts, routing |
 | **Agent Persistence** | `@langchain/langgraph-checkpoint-mongodb` | Multi-turn conversational session checkpointer |
-| **LLM Inference** | Groq Cloud (`@langchain/groq`) | Ultra-fast inference with open-weight models |
+| **LLM Inference** | Google Gemini (`@langchain/google-genai`) | Ultra-fast multimodal and tool-calling inference (Gemini 3.5 Flash-Lite) |
 | **Multimodal Vision** | Google Gemini 2.5 Flash (`@google/genai`) | High-fidelity image parsing and description |
 | **Tool Protocol** | Model Context Protocol (`@modelcontextprotocol/sdk`) | Standardized tool exposure via stdio transport |
 | **Authentication** | Firebase Admin SDK, JWT | Google OAuth login and secure session validation |
@@ -254,7 +254,6 @@ agentic-ai-project/
 - **Node.js**: v18.x or higher
 - **MongoDB**: Local instance or MongoDB Atlas URI
 - **API Keys Required**:
-  - [Groq Cloud API Key](https://console.groq.com/)
   - [Google Gemini API Key](https://aistudio.google.com/)
   - [Firebase Project & Service Account](https://firebase.google.com/)
   - [Google Cloud Console Credentials](https://console.cloud.google.com/) (Gmail & Calendar scopes enabled)
@@ -290,9 +289,10 @@ agentic-ai-project/
    JWT_SECRET=your_super_secret_jwt_key
    ENCRYPTION_KEY=64_character_hex_string_for_aes_256_gcm
 
-   # LLM & Vision
-   GROQ_API_KEY=gsk_your_groq_api_key
-   GEMINI_API_KEY=your_gemini_api_key
+   # LLM & Vision (Google Gemini)
+   GOOGLE_API_KEY=your_gemini_api_key
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   GEMINI_VISION_MODEL=gemini-2.5-flash
 
    # Google OAuth
    GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
@@ -375,6 +375,10 @@ agentic-ai-project/
 ### 4. Zero-Leakage Token Storage for Multi-Provider OAuth
 - **The Challenge:** Managing long-lived refresh tokens and access tokens across Google and Facebook/Instagram in a single database poses significant security risks if stored in plaintext or exposed during basic queries.
 - **The Solution:** Implemented authenticated AES-256-GCM symmetric encryption. Each token payload is encrypted with a unique 12-byte initialization vector and an authentication tag to prevent tampering. Additionally, Mongoose schemas enforce `select: false` on credential fields, ensuring tokens are decrypted strictly on-demand within tool execution boundaries.
+
+### 5. High-Throughput, Low-Latency LLM Inference Without Rate Limits
+- **The Challenge:** High-frequency agentic loops with multi-step tool calls require rapid reasoning turns. Standard free-tier inference providers (like Groq) enforce strict rate limits (e.g., 8,000 TPM) that exhaust within 1–2 agent turns during HITL card generation. Conversely, heavy reasoning models introduce 30+ second thinking delays, degrading interactive usability.
+- **The Solution:** Standardized the orchestration layer on **Google Gemini 3.5 Flash-Lite** (`@langchain/google-genai`). Flash-Lite provides a generous 1,000,000 TPM quota on Google AI Studio, eliminating 429 rate limit bottlenecks, while executing complex tool-binding and schema validation in sub-second intervals (~900ms – 1.3s). Additionally, implemented in-memory caching for MCP tool discovery in `langgraph-mcp.js`, eliminating repetitive stdio IPC subprocess overhead on every turn.
 
 ---
 
