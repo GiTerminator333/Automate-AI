@@ -76,10 +76,9 @@ async function getGoogleOAuthClient(userId, requiredService) {
 
   if (
     !process.env.GOOGLE_CLIENT_ID ||
-    !process.env.GOOGLE_CLIENT_SECRET ||
-    !process.env.GOOGLE_REDIRECT_URI
+    !process.env.GOOGLE_CLIENT_SECRET
   ) {
-    throw new Error("Google OAuth environment variables are missing.");
+    throw new Error("Google OAuth client ID or secret is not configured in environment variables.");
   }
 
   const integration = await IntegrationConnection.findOne({
@@ -100,7 +99,7 @@ async function getGoogleOAuthClient(userId, requiredService) {
   const oauthClient = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    process.env.GOOGLE_REDIRECT_URI || undefined
   );
 
   oauthClient.setCredentials({
@@ -294,7 +293,7 @@ server.registerTool(
       console.error("send_email failed:", error.message);
 
       return errorResponse(
-        "Unable to send the email. Check the Gmail connection and server logs."
+        `Unable to send the email: ${error.message}`
       );
     }
   }
@@ -420,7 +419,7 @@ Only execute after explicit user approval.
       );
 
       return errorResponse(
-        "Unable to create the calendar event. Check the Google Calendar connection and server logs."
+        `Unable to create the calendar event: ${error.message}`
       );
     }
   }
@@ -522,7 +521,7 @@ This tool only reads events; it does not modify them.
       );
 
       return errorResponse(
-        "Unable to retrieve calendar events. Check the Google Calendar connection and server logs."
+        `Unable to retrieve calendar events: ${error.message}`
       );
     }
   }
@@ -659,7 +658,7 @@ This tool is read-only and does not require approval.
       );
 
       return errorResponse(
-        "Unable to list emails. Check the Gmail connection, read permissions, and server logs."
+        `Unable to list emails: ${error.message}`
       );
     }
   }
@@ -764,7 +763,7 @@ modify emails, and does not require approval.
       );
 
       return errorResponse(
-        "Unable to read this email. Check the Gmail connection, message ID, read permissions, and server logs."
+        `Unable to read this email: ${error.message}`
       );
     }
   }
